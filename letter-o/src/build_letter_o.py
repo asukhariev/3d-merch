@@ -16,13 +16,15 @@ dcy=0.0                                   # diamond centred in the O, like the g
 o=(cq.Workplane().ellipse(A,B).extrude(RING_T).cut(cq.Workplane().ellipse(a,b).extrude(RING_T))).translate((0,0,RING_Z0))
 dia=cq.Workplane().polyline([(0,dcy+DH),(DW,dcy),(0,dcy-DH),(-DW,dcy)]).close().extrude(DIA_T).translate((0,0,DIA_Z0))
 neck=cq.Workplane().center(0,(dcy+DH+b+0.3)/2).rect(1.6,(b+0.3)-(dcy+DH)+0.8).extrude(RING_T).translate((0,0,RING_Z0))
-hole=cq.Workplane('YZ').workplane(offset=-A-2).center(dcy,HOLE_Z).circle(HOLE_D/2).extrude(2*A+4)
-body=o.union(neck).union(dia).cut(hole)
+# vertical channel on the axis: through the top of the O and through the diamond tip-to-tip (the V meets here)
+hole=cq.Workplane().add(cq.Solid.makeCylinder(HOLE_D/2,B+2-(dcy-DH-1),cq.Vector(0,dcy-DH-1,HOLE_Z),cq.Vector(0,1,0)))
+ring=o.cut(hole); bead=dia.cut(hole)
+body=ring.union(bead)
 v=body.val(); bb=v.BoundingBox()
 front_wall=(DIA_Z0+DIA_T)-(HOLE_Z+HOLE_D/2); back_wall=(HOLE_Z-HOLE_D/2)-DIA_Z0
-print('O %.1f x %.1f, strokes %.2f/%.2f | diamond %.1f x %.1f x %.1f, tunnel D%.1f walls front %.2f back %.2f | depth %.1f | steel %.2f g | solids %d'%(2*A,2*B,SIDE,TOPB,2*DW,2*DH,DIA_T,HOLE_D,front_wall,back_wall,bb.zlen,v.Volume()*7.9/1000,len(v.Solids())))
+print('solids: ring + diamond bead (separate) |',end=' ');print('O %.1f x %.1f, strokes %.2f/%.2f | diamond %.1f x %.1f x %.1f, tunnel D%.1f walls front %.2f back %.2f | depth %.1f | steel %.2f g | solids %d'%(2*A,2*B,SIDE,TOPB,2*DW,2*DH,DIA_T,HOLE_D,front_wall,back_wall,bb.zlen,v.Volume()*7.9/1000,len(v.Solids())))
 n='letter-o/out/letter-o-pendant'
-cq.exporters.export(body,n+'.step'); cq.exporters.export(body,n+'.stl',tolerance=0.005)
+cq.exporters.export(ring,n+'-ring.stl',tolerance=0.005);cq.exporters.export(bead,n+'-diamond.stl',tolerance=0.005);cq.exporters.export(body,n+'.step'); cq.exporters.export(body,n+'.stl',tolerance=0.005)
 import matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt
 fig,(ax,ax2)=plt.subplots(1,2,figsize=(8,5.5),dpi=160,gridspec_kw={'width_ratios':[3,1.2]})
 def shape(w,c,ax):
@@ -30,9 +32,8 @@ def shape(w,c,ax):
 # front view: O outline, then diamond on top, chain into the diamond tips
 fo=[f for f in o.val().Faces() if abs(f.Center().z-(RING_Z0+RING_T))<1e-3][0]
 shape(fo.outerWire(),'#222',ax); [shape(w,'white',ax) for w in fo.innerWires()]
-ax.add_patch(plt.Rectangle((-0.8,dcy+DH),1.6,b-(dcy+DH)+0.3,color='#222'))
 ax.fill([0,DW,0,-DW],[dcy+DH,dcy,dcy-DH,dcy],color='#222')
-ax.plot([-W*0.95,-DW],[B*3,dcy],color='#999',lw=2.2);ax.plot([W*0.95,DW],[B*3,dcy],color='#999',lw=2.2)
+ax.plot([-W*0.9,0,W*0.9],[B*3,B,B*3],color='#999',lw=2.2);ax.plot([0,0],[B,dcy-DH-2],color='#999',lw=1.2,ls=':')
 ax.set_title('Лице',fontsize=9);ax.set_aspect('equal');ax.axis('off')
 # side section through the centre
 ax2.add_patch(plt.Rectangle((RING_Z0,-B),RING_T,2*B,color='#bbb'))
