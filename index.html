@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>3D-мерч · галерея</title>
+<style>
+:root{color-scheme:light dark;--bg:#f6f6f6;--card:#fff;--ink:#111;--muted:#666;--line:#e3e3e3;--acc:#1a7f4b;--stage:#fff}
+@media(prefers-color-scheme:dark){:root{--bg:#111;--card:#1a1c20;--ink:#eceef1;--muted:#9ba1a9;--line:#2c3036;--acc:#4fc58a;--stage:#15171a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,system-ui,sans-serif}
+header{max-width:1200px;margin:0 auto;padding:28px 16px 8px}h1{margin:0;font-size:24px}header p{margin:4px 0 0;color:var(--muted)}
+main{max-width:1200px;margin:0 auto;padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.stage{height:300px;background:var(--stage);position:relative;cursor:grab}.stage canvas{display:block;width:100%;height:100%}
+.info{padding:12px 14px 14px}.info h2{margin:0 0 2px;font-size:16px}.info p{margin:0 0 8px;color:var(--muted);font-size:13px}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-right:4px}
+.files{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}.files a{font-size:12px;padding:4px 9px;border:1px solid var(--line);border-radius:8px;color:var(--ink);text-decoration:none}.files a b{color:var(--acc)}
+.mat{position:absolute;top:8px;left:8px;display:flex;gap:4px}.mat button{font-size:11px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:3px 7px;cursor:pointer}
+.mat button[aria-pressed=true]{background:var(--ink);color:var(--card)}
+.err{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;padding:20px;text-align:center}
+</style></head><body>
+<header><h1>3D-мерч · експерименти</h1><p>Усі моделі з репозиторію. Тягніть, щоб обертати; колесо — зум.</p></header>
+<main id="grid"></main>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<script type="module">
+import * as T from "three";
+import {OrbitControls} from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js";
+import {STLLoader} from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/STLLoader.js";
+import {RoomEnvironment} from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/environments/RoomEnvironment.js";
+
+// Add a new experiment here: one line per model.
+const MODELS=[
+ {title:"Літера «О» з ромбом",note:"Ланцюжок «V» проходить крізь канал у ромбі. 24 × 20 мм, ромб 6 мм завтовшки.",tags:["літера","друк сталлю"],dir:"letter-o/out",stl:"letter-o-pendant.stl",files:["letter-o-pendant.step","letter-o-pendant.stl","letter-o-pendant.png"]},
+ {title:"Кулон-знак, вушко «D»",note:"23.5 × 14.5 × 1 мм, отвір Ø1.8, стінки 1.5 мм.",tags:["знак","друк сталлю"],dir:"pendant/out",stl:"pendant_d18.stl",files:["pendant_d18.step","pendant_d18.stl","shryftoriz-pendant-23mm.dxf"]},
+ {title:"Жетон-відкривачка",note:"90 × 139 × 2 мм, знак вирізаний наскрізь, у верхівку входить кришка.",tags:["знак","лазерний різ"],dir:"tag/out",stl:"shryftoriz-tag-negative.stl",files:["shryftoriz-tag-negative.dxf","shryftoriz-tag-negative.step","shryftoriz-tag-negative.png"]},
+ {title:"Кільце зі знаком (чернетка)",note:"Ø26 мм, знак усередині кільця. Концепт, не для серії.",tags:["знак","чернетка"],dir:"ring/out",stl:"shryftoriz-ring-pendant.stl",files:["shryftoriz-ring-pendant.step","shryftoriz-ring-pendant.dxf","shryftoriz-ring-pendant.png"]},
+];
+const MATS={silver:[0xd7dadf,.7,.3],gold:[0xe8bf5a,.7,.3],black:[0x2a2c30,.6,.45]};
+const grid=document.getElementById("grid");
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+for(const m of MODELS){
+  const card=document.createElement("article");card.className="card";
+  card.innerHTML=`<div class="stage"><div class="mat">${Object.keys(MATS).map((k,i)=>`<button data-m="${k}" aria-pressed="${i==0}">${{silver:"Сталь",gold:"Золото",black:"Чорна"}[k]}</button>`).join("")}</div></div>
+  <div class="info"><h2>${m.title}</h2><p>${m.note}</p>${m.tags.map(t=>`<span class="tag">${t}</span>`).join("")}
+  <div class="files">${m.files.map(f=>`<a href="${m.dir}/${f}" download><b>${f.split(".").pop().toUpperCase()}</b> ${f}</a>`).join("")}</div></div>`;
+  grid.appendChild(card);view(card.querySelector(".stage"),m);
+}
+function view(el,m){
+  const r=new T.WebGLRenderer({antialias:true});r.setPixelRatio(Math.min(devicePixelRatio,2));r.toneMapping=T.ACESFilmicToneMapping;r.toneMappingExposure=1.25;el.appendChild(r.domElement);
+  const s=new T.Scene();s.background=new T.Color(getComputedStyle(document.documentElement).getPropertyValue("--stage").trim());
+  s.environment=new T.PMREMGenerator(r).fromScene(new RoomEnvironment(),0.04).texture;
+  s.add(new T.HemisphereLight(0xffffff,0xbbbbbb,1.3));const d=new T.DirectionalLight(0xffffff,2);d.position.set(60,80,120);s.add(d);
+  const cam=new T.PerspectiveCamera(30,1,0.1,5000),ctl=new OrbitControls(cam,r.domElement);ctl.enableDamping=true;
+  const mat=new T.MeshStandardMaterial({color:MATS.silver[0],metalness:MATS.silver[1],roughness:MATS.silver[2]});
+  let drag=false,resume=0,last=performance.now();ctl.addEventListener("start",()=>drag=true);ctl.addEventListener("end",()=>{drag=false;resume=performance.now()+2500});
+  el.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{const v=MATS[b.dataset.m];mat.color.set(v[0]);mat.metalness=v[1];mat.roughness=v[2];el.querySelectorAll("[data-m]").forEach(x=>x.setAttribute("aria-pressed",x===b));});
+  new STLLoader().load(`${m.dir}/${m.stl}`,g=>{
+    g.computeVertexNormals();g.center();g.computeBoundingSphere();const R=g.boundingSphere.radius;
+    s.add(new T.Mesh(g,mat));cam.position.set(R*1.6,R*0.9,R*3.2);ctl.target.set(0,0,0);ctl.update();
+  },undefined,()=>{el.insertAdjacentHTML("beforeend",`<div class="err">Не вдалося завантажити ${m.stl}.<br>Відкрийте сторінку через локальний сервер (див. README).</div>`);});
+  (function loop(){requestAnimationFrame(loop);const w=el.clientWidth,h=el.clientHeight;
+    if(r.domElement.width!==Math.floor(w*r.getPixelRatio())){r.setSize(w,h,false);r.domElement.style.width=w+"px";r.domElement.style.height=h+"px";cam.aspect=w/h;cam.updateProjectionMatrix();}
+    const now=performance.now(),dt=Math.min(.1,(now-last)/1000);last=now;
+    if(!reduce&&!drag&&now>resume){const a=dt*0.4,c=Math.cos(a),si=Math.sin(a),x=cam.position.x,z=cam.position.z;cam.position.x=x*c-z*si;cam.position.z=x*si+z*c;}
+    ctl.update();r.render(s,cam);})();
+}
+</script></body></html>

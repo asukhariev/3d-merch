@@ -25,3 +25,11 @@ Open the STEP files in FreeCAD (free) to inspect or edit.
 - Pendant brief (EN/PT/UK): https://agtc.app/artifacts/1f8c94a7-79e3-43dd-bf47-12b4db3e2e90
 - Pendant 3D: https://agtc.app/artifacts/545fb77b-3e1a-4285-911c-688a95e0984f
 - Opener tag 3D: https://agtc.app/artifacts/7d5f19d5-31b9-47ec-81ac-5350504724f1
+
+## Галерея локально
+
+```bash
+git clone https://github.com/asukhariev/3d-merch && cd 3d-merch && python3 -m http.server 8000
+```
+
+Відкрити http://localhost:8000 — усі моделі в 3D. Нова модель = один рядок у `MODELS` в `index.html`.
