@@ -21,13 +21,14 @@ RI=HOLE_D/2; R=RI+WALL; ZC=-RI; top=max(p[1] for p in outer); YC=top-0.25-R
 xl,xr=[],[]
 for i in range(21):
     yy=YC-R+2*R*i/20; row=np.nonzero(m[int(round(y1-yy/s))])[0]; xl.append((row.min()-x0)*s); xr.append((row.max()-x0)*s)
-X0,X1=max(xl)+INSET,min(xr)-INSET; L=X1-X0
+BAIL_L=5.0; cx=body.val().Center().x                     # short bail centred over the centre of mass -> hangs straight
+X0,X1=max(max(xl)+INSET,cx-BAIL_L/2),min(min(xr)-INSET,cx+BAIL_L/2); L=X1-X0
 bail=cq.Workplane('YZ').workplane(offset=X0).center(YC,ZC).circle(R).extrude(L).union(cq.Workplane().box(L,2*R,-ZC+0.01,centered=False).translate((X0,YC-R,ZC)))
 bail=bail.intersect(cq.Workplane().box(60,60,30,centered=(True,True,False)).translate((20,20,-30+0.001)))   # keep only the back half-space
 body=body.union(bail).cut(cq.Workplane('YZ').workplane(offset=X0-1).center(YC,ZC).circle(RI).extrude(L+2))
 hy=YC; W=(xs.max()-xs.min())*s
 v=body.val(); bb=v.BoundingBox()
-print('G %.1f x %.1f x %.1f mm | %d vertices | bail L %.1f, bore D%.1f at y=%.1f | steel %.2f g | solids %d'%(bb.xlen,bb.ylen,bb.zlen,len(outer),L,HOLE_D,hy,v.Volume()*7.9/1000,len(v.Solids())))
+c=v.Center(); print('CoM x %.2f vs bail centre %.2f |'%(c.x,(X0+X1)/2),end=' '); print('G %.1f x %.1f x %.1f mm | %d vertices | bail L %.1f, bore D%.1f at y=%.1f | steel %.2f g | solids %d'%(bb.xlen,bb.ylen,bb.zlen,len(outer),L,HOLE_D,hy,v.Volume()*7.9/1000,len(v.Solids())))
 o='letter-g/out/letter-g-pendant'
 cq.exporters.export(body,o+'.step'); cq.exporters.export(body,o+'.stl',tolerance=0.005)
 xs_,ys_=zip(*outer); X0,Y1=min(xs_),max(ys_)
