@@ -9,14 +9,14 @@ A,B=68*s,57.5*s
 SIDE,TOPB=max(20*s,1.5),max(9*s,1.5)
 a,b=A-SIDE,B-TOPB
 DW,DH=19*s*1.15,24*s*1.15                 # diamond a bit larger to host the tunnel
-RING_Z0,RING_T=-2.5,2.0                   # O plate sits at the back: z -2.5..-0.5
-DIA_Z0,DIA_T=-2.5,6.0                     # diamond: z -2.5..3.5
-HOLE_D,HOLE_Z=1.8,0.6                     # tunnel for a ~1-1.2 mm chain, in front of the O band
+RING_Z0,RING_T=0.0,4.2                    # flat medallion: ring and diamond same thickness
+DIA_Z0,DIA_T=0.0,4.2
+HOLE_D,HOLE_Z=1.2,2.1                     # one straight channel: ring side, diamond, ring side (3 openings), walls 1.5
 dcy=0.0                                   # diamond centred in the O, like the glyph
 o=(cq.Workplane().ellipse(A,B).extrude(RING_T).cut(cq.Workplane().ellipse(a,b).extrude(RING_T))).translate((0,0,RING_Z0))
 dia=cq.Workplane().polyline([(0,dcy+DH),(DW,dcy),(0,dcy-DH),(-DW,dcy)]).close().extrude(DIA_T).translate((0,0,DIA_Z0))
 neck=cq.Workplane().center(0,(dcy+DH+b+0.3)/2).rect(1.6,(b+0.3)-(dcy+DH)+0.8).extrude(RING_T).translate((0,0,RING_Z0))
-hole=cq.Workplane('YZ').workplane(offset=-DW-2).center(dcy,HOLE_Z).circle(HOLE_D/2).extrude(2*DW+4)
+hole=cq.Workplane('YZ').workplane(offset=-A-2).center(dcy,HOLE_Z).circle(HOLE_D/2).extrude(2*A+4)
 body=o.union(neck).union(dia).cut(hole)
 v=body.val(); bb=v.BoundingBox()
 front_wall=(DIA_Z0+DIA_T)-(HOLE_Z+HOLE_D/2); back_wall=(HOLE_Z-HOLE_D/2)-DIA_Z0
@@ -39,6 +39,6 @@ ax2.add_patch(plt.Rectangle((RING_Z0,-B),RING_T,2*B,color='#bbb'))
 ax2.add_patch(plt.Rectangle((DIA_Z0,dcy-DH),DIA_T,2*DH,color='#222'))
 ax2.add_patch(plt.Circle((HOLE_Z,dcy),HOLE_D/2,color='white'))
 ax2.plot([HOLE_Z,HOLE_Z],[dcy,B*3],color='#999',lw=2.2)
-ax2.set_title('Розріз збоку',fontsize=9);ax2.set_aspect('equal');ax2.axis('off');ax2.set_xlim(-5,6)
+ax2.set_title('Розріз збоку',fontsize=9);ax2.set_aspect('equal');ax2.axis('off');ax2.set_xlim(-3,7)
 fig.suptitle('%.0f × %.0f мм · ромб %.1f мм завтовшки · канал Ø%.1f'%(2*A,2*B,DIA_T,HOLE_D),fontsize=9)
 plt.savefig(n+'.png',bbox_inches='tight')
