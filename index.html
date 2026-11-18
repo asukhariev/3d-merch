@@ -54,7 +54,7 @@ function view(el,m){
   el.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{const v=MATS[b.dataset.m];mat.color.set(v[0]);mat.metalness=v[1];mat.roughness=v[2];el.querySelectorAll("[data-m]").forEach(x=>x.setAttribute("aria-pressed",x===b));});
   new STLLoader().load(`${m.dir}/${m.stl}`,g=>{
     g.computeVertexNormals();g.center();g.computeBoundingSphere();const R=g.boundingSphere.radius;
-    s.add(new T.Mesh(g,mat));cam.position.set(R*1.6,R*0.9,R*3.2);ctl.target.set(0,0,0);ctl.update();
+    s.add(new T.Mesh(g,mat));cam.position.set(R*1.8,R*1.0,R*3.6);ctl.target.set(0,0,0);ctl.update();
   },undefined,()=>{el.insertAdjacentHTML("beforeend",`<div class="err">Не вдалося завантажити ${m.stl}.<br>Відкрийте сторінку через локальний сервер (див. README).</div>`);});
   (function loop(){requestAnimationFrame(loop);const w=el.clientWidth,h=el.clientHeight;
     if(r.domElement.width!==Math.floor(w*r.getPixelRatio())){r.setSize(w,h,false);r.domElement.style.width=w+"px";r.domElement.style.height=h+"px";cam.aspect=w/h;cam.updateProjectionMatrix();}
