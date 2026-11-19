@@ -8,7 +8,7 @@ from PIL import Image
 from scipy import ndimage
 from skimage import morphology
 name,mode=sys.argv[1],sys.argv[2]; X0,Y0,X1,Y1=map(int,sys.argv[3:7]); H=float(sys.argv[7])
-CLOSE=int(sys.argv[8]) if len(sys.argv)>8 else 0; K=int(sys.argv[9]) if len(sys.argv)>9 else 3; CONVEX=len(sys.argv)>10 and sys.argv[10]=='convex'
+CLOSE=int(sys.argv[8]) if len(sys.argv)>8 else 0; K=int(sys.argv[9]) if len(sys.argv)>9 else 3; CONVEX='convex' in sys.argv[10:]; LOOP='loop' in sys.argv[10:]
 T,HOLE_D,WALL,BAIL_L,INSET=2.0,1.8,1.5,5.0,0.4
 a=np.asarray(Image.open(f'{name}/ref/reference.png').convert('RGB')).astype(int)[Y0:Y1,X0:X1]
 R_,G_,B_=a[...,0],a[...,1],a[...,2]
@@ -28,23 +28,28 @@ solid_mm=(seg-top+1)*s
 RI=HOLE_D/2; R=RI+WALL; ZC=-RI
 top_mm=(y1-top)*s; YC=top_mm-0.25-R
 
-xl,xr=[],[]
-for i in range(21):
-    r=int(round(y1-(YC-R+2*R*i/20)/s)); row=m[r]
-    if True:
-        nz=np.nonzero(row)[0]
-        if len(nz): xl.append((nz.min()-x0)*s); xr.append((nz.max()-x0)*s)
-        continue
-    if True:
-        l=col
-        while l>0 and row[l-1]: l-=1
-        rr=col
-        while rr<len(row)-1 and row[rr+1]: rr+=1
-        xl.append((l-x0)*s); xr.append((rr-x0)*s)
-bx0,bx1=max(max(xl)+INSET,cx-BAIL_L/2),min(min(xr)-INSET,cx+BAIL_L/2); L=bx1-bx0
-bail=cq.Workplane('YZ').workplane(offset=bx0).center(YC,ZC).circle(R).extrude(L).union(cq.Workplane().box(L,2*R,-ZC+0.01,centered=False).translate((bx0,YC-R,ZC)))
-bail=bail.intersect(cq.Workplane().box(200,200,30,centered=(True,True,False)).translate((50,50,-30+0.001)))
-body=body.union(bail).cut(cq.Workplane('YZ').workplane(offset=bx0-1).center(YC,ZC).circle(RI).extrude(L+2))
+if LOOP:   # small eyelet on top, in the plane of the letter (front-visible, part of the design)
+    RO,RIL,OV=2.5,1.0,0.9                     # outer D5, hole D2, wall 1.5; sinks 0.9 mm into the top stroke
+    LY=top_mm+RO-OV; bx0=bx1=cx; L=0; YC=LY; R=RO
+    body=body.union(cq.Workplane().center(cx,LY).circle(RO).extrude(T)).cut(cq.Workplane().center(cx,LY).circle(RIL).extrude(T+2).translate((0,0,-1)))
+else:
+    xl,xr=[],[]
+    for i in range(21):
+        r=int(round(y1-(YC-R+2*R*i/20)/s)); row=m[r]
+        if True:
+            nz=np.nonzero(row)[0]
+            if len(nz): xl.append((nz.min()-x0)*s); xr.append((nz.max()-x0)*s)
+            continue
+        if True:
+            l=col
+            while l>0 and row[l-1]: l-=1
+            rr=col
+            while rr<len(row)-1 and row[rr+1]: rr+=1
+            xl.append((l-x0)*s); xr.append((rr-x0)*s)
+    bx0,bx1=max(max(xl)+INSET,cx-BAIL_L/2),min(min(xr)-INSET,cx+BAIL_L/2); L=bx1-bx0
+    bail=cq.Workplane('YZ').workplane(offset=bx0).center(YC,ZC).circle(R).extrude(L).union(cq.Workplane().box(L,2*R,-ZC+0.01,centered=False).translate((bx0,YC-R,ZC)))
+    bail=bail.intersect(cq.Workplane().box(200,200,30,centered=(True,True,False)).translate((50,50,-30+0.001)))
+    body=body.union(bail).cut(cq.Workplane('YZ').workplane(offset=bx0-1).center(YC,ZC).circle(RI).extrude(L+2))
 v=body.val(); bb=v.BoundingBox()
 print('%s %.1f x %.1f x %.1f mm | top stroke %.1f mm | bail L %.1f at x %.1f (CoM %.1f) | steel %.2f g | solids %d'%(name,bb.xlen,bb.ylen,bb.zlen,solid_mm,L,(bx0+bx1)/2,cx,v.Volume()*7.9/1000,len(v.Solids())))
 o=f'{name}/out/{name}-pendant'
@@ -52,5 +57,5 @@ cq.exporters.export(body,o+'.step'); cq.exporters.export(body,o+'.stl',tolerance
 import matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt
 fig,ax=plt.subplots(figsize=(3.5,4),dpi=150)
 for ol,hs in sh: ax.fill(*zip(*ol),color='#1d1d1d'); [ax.fill(*zip(*h),color='white') for h in hs]
-ax.add_patch(plt.Rectangle((bx0,YC-R),L,2*R,fill=False,ec='#3c3',ls='--')); ax.set_aspect('equal'); ax.axis('off')
-ax.set_title('%.0f × %.0f × %.0f мм · вушко ззаду Ø%.1f'%(bb.xlen,bb.ylen,T,HOLE_D),fontsize=8); plt.savefig(o+'.png',bbox_inches='tight')
+(ax.add_patch(plt.Circle((cx,YC),R,color='#1d1d1d')),ax.add_patch(plt.Circle((cx,YC),1.0,color='white'))) if LOOP else ax.add_patch(plt.Rectangle((bx0,YC-R),L,2*R,fill=False,ec='#3c3',ls='--')); ax.set_aspect('equal'); ax.axis('off')
+ax.set_title('%.0f × %.0f × %.0f мм · %s'%(bb.xlen,bb.ylen,T,'петелька зверху Ø2' if LOOP else 'вушко ззаду Ø%.1f'%HOLE_D),fontsize=8); plt.savefig(o+'.png',bbox_inches='tight')
